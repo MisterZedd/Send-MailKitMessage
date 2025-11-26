@@ -1,5 +1,6 @@
 ﻿using MimeKit;
 using System;
+using System.Collections;
 using System.IO;
 using System.Management.Automation;
 using System.Reflection;
@@ -89,6 +90,20 @@ namespace Send_MailKitMessage
             Mandatory = false)]
         public string[] AttachmentList { get; set; }
 
+        [Parameter(
+            Mandatory = false)]
+        [ValidateSet(new string[]
+        {
+            "Normal",
+            "High",
+            "Low"
+        })]
+        public string Priority { get; set; } = "Normal";
+
+        [Parameter(
+            Mandatory = false)]
+        public Hashtable InlineImages { get; set; }
+
         // This method gets called once for each cmdlet in the pipeline when the pipeline starts executing
         protected override void BeginProcessing()
         {
@@ -151,8 +166,57 @@ namespace Send_MailKitMessage
                     }
                 }
 
+                //inline attachment(s)
+                if(InlineImages != null && InlineImages.Count > 0)
+                {
+                    foreach(object obj in InlineImages)
+                    {
+                        DictionaryEntry dictionaryEntry = (dictionaryEntry)obj;
+                        string contentId = dictionaryEntry.Key.ToString();
+                        string text = dictionaryEntry.Value.ToString();
+                        if(File.Exists(text))
+                        {
+                            string[] array = MimeTypes.GetMimeType(text).Split(new char[]
+                            {
+                                '/'
+                            });
+                            MimePart attachment = new MimePart(new ContentType(array[0], array[1]))
+                            {
+                                Content = new MimeContent(File.OpenRead(text), ContentEncoding.Default),
+                                ContentDisposition = new ContentDisposition("inline"),
+                                ContentTransferEncoding = ContentEncoding.Base64,
+                                ContentId = contentId,
+                                FileName = Path.GetFileName(text)
+                            };
+                            bodyBuilder.LinkedResources.Add(attachment);
+                        }
+                        else
+                        {
+                            base.WriteWarning("Inline image file not found: " + text);
+                        }
+                    }
+                }
+
                 //add bodybuilder to body
                 Message.Body = Body.ToMessageBody();
+
+                //set message priority
+                string prio = Priority.ToLower();
+                if(!(prio == "high"))
+                {
+                    if(prio == "low")
+                    {
+                        mimeMessage.Headers.Add("X-Priority", "5 (Lowest)");
+                        mimeMessage.Headers.Add("X-MSMail-Priority", "Low");
+                        mimeMessage.Headers.Add("Importance", "Low");
+                    }
+                }
+                else
+                {
+                    mimeMessage.Headers.Add("X-Priority", "1 (Highest)");
+                    mimeMessage.Headers.Add("X-MSMail-Priority", "High");
+                    mimeMessage.Headers.Add("Importance", "High");
+                }
 
                 //smtp send
                 Client.Connect(SMTPServer, Port, (UseSecureConnectionIfAvailable.IsPresent ? MailKit.Security.SecureSocketOptions.Auto : MailKit.Security.SecureSocketOptions.None));
