@@ -188,7 +188,7 @@ namespace Send_MailKitMessage
                                 ContentId = contentId,
                                 FileName = Path.GetFileName(text)
                             };
-                            bodyBuilder.LinkedResources.Add(attachment);
+                            Body.LinkedResources.Add(attachment);
                         }
                         else
                         {
@@ -206,16 +206,16 @@ namespace Send_MailKitMessage
                 {
                     if(prio == "low")
                     {
-                        mimeMessage.Headers.Add("X-Priority", "5 (Lowest)");
-                        mimeMessage.Headers.Add("X-MSMail-Priority", "Low");
-                        mimeMessage.Headers.Add("Importance", "Low");
+                        Message.Headers.Add("X-Priority", "5 (Lowest)");
+                        Message.Headers.Add("X-MSMail-Priority", "Low");
+                        Message.Headers.Add("Importance", "Low");
                     }
                 }
                 else
                 {
-                    mimeMessage.Headers.Add("X-Priority", "1 (Highest)");
-                    mimeMessage.Headers.Add("X-MSMail-Priority", "High");
-                    mimeMessage.Headers.Add("Importance", "High");
+                    Message.Headers.Add("X-Priority", "1 (Highest)");
+                    Message.Headers.Add("X-MSMail-Priority", "High");
+                    Message.Headers.Add("Importance", "High");
                 }
 
                 //smtp send
